@@ -1,0 +1,60 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: tracker-db
+    environment:
+      POSTGRES_DB: tracker_db
+      POSTGRES_USER: tracker_user
+      POSTGRES_PASSWORD: tracker_password
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    networks:
+      - tracker-network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U tracker_user -d tracker_db']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    container_name: tracker-backend
+    ports:
+      - '5000:5000'
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://tracker_user:tracker_password@postgres:5432/tracker_db
+      - NODE_ENV=development
+      - PORT=5000
+      - YOUTUBE_API_KEY=${YOUTUBE_API_KEY}
+      - TOKINSIGHT_API_KEY=${TOKINSIGHT_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - tracker-network
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: tracker-frontend
+    ports:
+      - '80:80'
+    environment:
+      - REACT_APP_API_URL=http://localhost:5000/api
+    depends_on:
+      - backend
+    networks:
+      - tracker-network
+    restart: unless-stopped
+
+networks:
+  tracker-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
