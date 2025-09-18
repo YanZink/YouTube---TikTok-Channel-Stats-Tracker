@@ -1,4 +1,3 @@
-
 --channels
 CREATE TABLE IF NOT EXISTS channels (
     id SERIAL PRIMARY KEY,
@@ -25,7 +24,3 @@ CREATE TABLE IF NOT EXISTS stats (
 CREATE INDEX IF NOT EXISTS idx_stats_channel_id ON stats(channel_id);
 CREATE INDEX IF NOT EXISTS idx_stats_recorded_at ON stats(recorded_at);
 CREATE INDEX IF NOT EXISTS idx_channels_platform_channel_id ON channels(platform, channel_id);
-
-
-ALTER TABLE stats ADD COLUMN IF NOT EXISTS videos INTEGER;
-ALTER TABLE stats ADD COLUMN IF NOT EXISTS likes BIGINT;

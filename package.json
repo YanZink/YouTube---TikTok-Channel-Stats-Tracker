@@ -1,0 +1,14 @@
+{
+  "name": "youtube-tiktok-tracker",
+  "version": "1.0.0",
+  "description": "YouTube & TikTok Channel Stats Tracker",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "echo 'Build complete'",
+    "start": "cd backend && npm start",
+    "install-backend": "cd backend && npm ci --only=production",
+    "install-frontend": "cd frontend && npm ci"
+  }
+}

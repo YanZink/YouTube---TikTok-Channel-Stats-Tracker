@@ -1,6 +1,7 @@
 {
   "name": "tracker-frontend",
   "version": "1.0.0",
+  "homepage": ".",
   "description": "YouTube & TikTok Stats Tracker Frontend",
   "private": true,
   "dependencies": {
