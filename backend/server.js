@@ -13,10 +13,9 @@ const PORT = process.env.PORT || 10000;
 // Middleware
 app.use(
   cors({
-    origin:
-      process.env.NODE_ENV === 'production'
-        ? 'https://tracker-frontend.onrender.com'
-        : 'http://localhost:3000',
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
 app.use(express.json());
