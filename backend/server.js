@@ -25,6 +25,26 @@ app.use(express.json());
 app.use('/api/channels', channelsRouter);
 app.use('/api/stats', statsRouter);
 
+app.post('/api/init-db', async (req, res) => {
+  try {
+    console.log('🔄 Manual database initialization...');
+    await setupDatabase();
+    res.json({ message: '✅ Database initialized successfully' });
+  } catch (error) {
+    console.error('❌ Manual init error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/check-db', async (req, res) => {
+  try {
+    const result = await db.query('SELECT NOW() as time');
+    res.json({ status: '✅ DB connected', time: result.rows[0].time });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Initialize database and start server
 async function startServer() {
   try {
