@@ -36,8 +36,8 @@ async function startServer() {
       console.log(`🚀 Server running on port ${PORT}`);
     });
 
-    scheduler.start();
-    console.log('⏰ Scheduler started');
+    //scheduler.start();
+    //console.log('⏰ Scheduler started');
   } catch (error) {
     console.error('❌ Failed to start server:', error);
     process.exit(1);
