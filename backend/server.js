@@ -4,8 +4,7 @@ const dotenv = require('dotenv');
 const channelsRouter = require('./routes/channels');
 const statsRouter = require('./routes/stats');
 const scheduler = require('./services/scheduler');
-const setupDatabase = require('./scripts/setup-database');
-
+const setupDatabase = require('./db/setup-database');
 dotenv.config();
 
 const app = express();
