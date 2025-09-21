@@ -11,6 +11,12 @@
   padding: 0 20px;
 }
 
+.dashboard-title {
+  text-align: center;
+  margin-bottom: 30px;
+  color: white;
+}
+
 .add-channel-section {
   text-align: center;
   margin-bottom: 30px;
@@ -28,7 +34,8 @@
   transition: all 0.3s ease;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   display: flex;
-  margin: 20px;
+  margin: 20px auto;
+  padding: auto;
 }
 
 .btn-add-channel:hover {
@@ -127,7 +134,7 @@
 
 .stat-label {
   font-size: 12px;
-  color: #374151;
+  color: #ffffff;
   font-weight: 600;
   margin-bottom: 4px;
   text-transform: uppercase;
@@ -138,7 +145,7 @@
 .stat-value {
   font-size: 16px;
   font-weight: 700;
-  color: #1f2937;
+  color: #ffffff;
 }
 
 .btn-view-details {

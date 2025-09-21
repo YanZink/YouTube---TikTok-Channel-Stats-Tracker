@@ -4,7 +4,7 @@ const db = require('../db/database');
 const youtubeService = require('../services/youtube');
 const tiktokService = require('../services/tiktok');
 
-// URL validation
+// URL validation - same as before
 const validateChannelUrl = (url, platform) => {
   const patterns = {
     youtube: [
@@ -22,7 +22,7 @@ const validateChannelUrl = (url, platform) => {
   return patterns[platform].some((pattern) => pattern.test(url.trim()));
 };
 
-// Middleware for validation
+// Middleware for validation - same as before
 const validateChannelInput = (req, res, next) => {
   const { platform, url } = req.body;
 
@@ -46,7 +46,7 @@ const validateChannelInput = (req, res, next) => {
   next();
 };
 
-// Get all channels with latest statistics
+// Get all channels with latest statistics - same as before
 router.get('/', async (req, res) => {
   try {
     const query = `
@@ -74,7 +74,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-//Add a new channel
+// Add a new channel - UPDATED VERSION
 router.post('/', validateChannelInput, async (req, res) => {
   const { platform, url } = req.body;
 
@@ -83,6 +83,7 @@ router.post('/', validateChannelInput, async (req, res) => {
   try {
     let channelData;
     let channelId;
+    let realChannelId = null; // For YouTube real Channel ID
 
     // Check for duplicates BEFORE calling the API
     if (platform === 'youtube') {
@@ -102,7 +103,9 @@ router.post('/', validateChannelInput, async (req, res) => {
         });
       }
 
-      channelData = await youtubeService.getChannelInfo(channelId, url);
+      // Get channel data AND real Channel ID for new channel
+      channelData = await youtubeService.getChannelInfoForNewChannel(channelId);
+      realChannelId = channelData.realChannelId; // Extract real Channel ID
       console.log('✅ YouTube service result:', channelData);
     } else if (platform === 'tiktok') {
       channelId = extractTikTokChannelId(url);
@@ -119,13 +122,15 @@ router.post('/', validateChannelInput, async (req, res) => {
         });
       }
 
-      channelData = await tiktokService.getChannelInfo(channelId);
+      // Get channel data AND user_id for new TikTok channel
+      channelData = await tiktokService.getChannelInfoForNewChannel(channelId);
+      realChannelId = channelData.realChannelId; // Extract user_id for TikTok
     }
 
-    // Save the channel to the DB
+    // Save the channel to the DB with real_channel_id
     const insertChannelQuery = `
-      INSERT INTO channels (channel_name, platform, channel_id, channel_url)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO channels (channel_name, platform, channel_id, channel_url, real_channel_id)
+      VALUES ($1, $2, $3, $4, $5)
       RETURNING id
     `;
 
@@ -134,10 +139,12 @@ router.post('/', validateChannelInput, async (req, res) => {
       platform,
       channelId,
       url,
+      realChannelId, // Save real Channel ID for YouTube (null for TikTok)
     ]);
 
     const dbChannelId = channelResult.rows[0].id;
 
+    // Save initial statistics
     const insertStatsQuery = `
       INSERT INTO stats (channel_id, subscribers, total_views, videos, likes, recorded_at)
       VALUES ($1, $2, $3, $4, $5, NOW())
@@ -172,7 +179,7 @@ router.post('/', validateChannelInput, async (req, res) => {
   }
 });
 
-// Function to extract YouTube channel ID from URL
+// Function to extract YouTube channel ID from URL - same as before
 function extractYouTubeChannelId(url) {
   const trimmedUrl = url.trim();
 
@@ -208,7 +215,7 @@ function extractYouTubeChannelId(url) {
   throw new Error('Invalid YouTube URL format');
 }
 
-// Function to extract TikTok channel ID from URL
+// Function to extract TikTok channel ID from URL - same as before
 function extractTikTokChannelId(url) {
   const trimmedUrl = url.trim();
 
@@ -228,7 +235,7 @@ function extractTikTokChannelId(url) {
   throw new Error('Invalid TikTok URL format');
 }
 
-// Delete channel
+// Delete channel - same as before
 router.delete('/:id', async (req, res) => {
   const { id } = req.params;
 

@@ -91,7 +91,7 @@ const Dashboard = () => {
   return (
     <div className="dashboard">
       <div className="dashboard-header">
-        <h1>Channel Stats Tracker</h1>
+        <h1 className="dashboard-title">Channel Stats Tracker</h1>
         <button
           className="btn-add-channel"
           onClick={() => setShowAddModal(true)}

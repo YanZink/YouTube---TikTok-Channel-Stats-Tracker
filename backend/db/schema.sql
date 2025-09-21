@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS channels (
     channel_url TEXT NOT NULL,
     channel_name VARCHAR(255),
     channel_id VARCHAR(255) NOT NULL,
+    real_channel_id VARCHAR(255), -- Cache for YouTube Channel ID
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(platform, channel_id)
 );
@@ -24,3 +25,4 @@ CREATE TABLE IF NOT EXISTS stats (
 CREATE INDEX IF NOT EXISTS idx_stats_channel_id ON stats(channel_id);
 CREATE INDEX IF NOT EXISTS idx_stats_recorded_at ON stats(recorded_at);
 CREATE INDEX IF NOT EXISTS idx_channels_platform_channel_id ON channels(platform, channel_id);
+CREATE INDEX IF NOT EXISTS idx_channels_real_channel_id ON channels(real_channel_id);
