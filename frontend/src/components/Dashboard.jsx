@@ -22,6 +22,9 @@ const Dashboard = () => {
   const fetchChannels = async () => {
     try {
       const response = await fetch(`${process.env.REACT_APP_API_URL}/channels`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const data = await response.json();
       setChannels(data);
       setLoading(false);
@@ -33,7 +36,7 @@ const Dashboard = () => {
 
   // Format number
   const formatNumber = (num) => {
-    if (!num) return '0';
+    if (!num || num === 0) return '0';
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
     return num.toString();
@@ -95,80 +98,86 @@ const Dashboard = () => {
         <button
           className="btn-add-channel"
           onClick={() => setShowAddModal(true)}
+          disabled={isAddingChannel}
         >
-          Add Channel
+          {isAddingChannel ? 'Adding...' : 'Add Channel'}
         </button>
       </div>
 
       {loading ? (
         <div className="loading">Loading channels...</div>
       ) : (
-        <div className="channels-grid">
-          {channels.map((channel) => (
-            <div key={channel.id} className="channel-card">
-              <div className="channel-header">
-                {channel.platform === 'youtube' ? (
-                  <Youtube className="platform-icon youtube" />
-                ) : (
-                  <Music2 className="platform-icon tiktok" />
-                )}
-                <span className="channel-name">{channel.name}</span>
-              </div>
+        <>
+          {channels.length === 0 ? (
+            <div className="loading">
+              No channels added yet. Click "Add Channel" to get started!
+            </div>
+          ) : (
+            <div className="channels-grid">
+              {channels.map((channel) => (
+                <div key={channel.id} className="channel-card">
+                  <div className="channel-header">
+                    {channel.platform === 'youtube' ? (
+                      <Youtube className="platform-icon youtube" />
+                    ) : (
+                      <Music2 className="platform-icon tiktok" />
+                    )}
+                    <span className="channel-name">
+                      {channel.name || channel.channel_id}
+                    </span>
+                  </div>
 
-              <div className="channel-stats">
-                <div className="stat-item">
-                  <span className="stat-label">Subscribers:</span>
-                  <span className="stat-value">
-                    {formatNumber(channel.subscribers)}
-                  </span>
-                </div>
-
-                {/* DISPLAY FOR DIFFERENT PLATFORMS */}
-                {channel.platform === 'youtube' ? (
-                  <>
+                  <div className="channel-stats">
                     <div className="stat-item">
-                      <span className="stat-label">Views:</span>
+                      <span className="stat-label">Subscribers:</span>
                       <span className="stat-value">
-                        {formatNumber(channel.views)}
+                        {formatNumber(channel.subscribers)}
                       </span>
                     </div>
-                    {channel.videos > 0 && (
+
+                    {/* DISPLAY FOR DIFFERENT PLATFORMS */}
+                    {channel.platform === 'youtube' ? (
+                      <>
+                        <div className="stat-item">
+                          <span className="stat-label">Views:</span>
+                          <span className="stat-value">
+                            {formatNumber(channel.views)}
+                          </span>
+                        </div>
+                        {channel.videos > 0 && (
+                          <div className="stat-item">
+                            <span className="stat-label">Videos:</span>
+                            <span className="stat-value">
+                              {formatNumber(channel.videos)}
+                            </span>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      // FOR TIKTOK WE SHOW ONLY LIKES
                       <div className="stat-item">
-                        <span className="stat-label">Videos:</span>
+                        <span className="stat-label">Likes:</span>
                         <span className="stat-value">
-                          {formatNumber(channel.videos)}
+                          {formatNumber(channel.likes)}
                         </span>
                       </div>
                     )}
-                  </>
-                ) : (
-                  // FOR TIKTOK WE SHOW ONLY LIKES
-                  <div className="stat-item">
-                    <span className="stat-label">Likes:</span>
-                    <span className="stat-value">
-                      {formatNumber(channel.likes)}
-                    </span>
                   </div>
-                )}
-              </div>
 
-              <button
-                className="btn-view-details"
-                onClick={() => handleViewDetails(channel)}
-                disabled={deletingChannelId === channel.id}
-              >
-                View Details
-              </button>
+                  <button
+                    className="btn-view-details"
+                    onClick={() => handleViewDetails(channel)}
+                    disabled={deletingChannelId === channel.id}
+                  >
+                    {deletingChannelId === channel.id
+                      ? 'Processing...'
+                      : 'View Details'}
+                  </button>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
-
-      {isAddingChannel && (
-        <div className="adding-loading">
-          <div className="spinner"></div>
-          Adding channel...
-        </div>
+          )}
+        </>
       )}
 
       {showAddModal && (
