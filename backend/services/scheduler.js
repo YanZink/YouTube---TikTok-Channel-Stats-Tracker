@@ -7,11 +7,15 @@ class Scheduler {
   constructor() {
     // Configuration for retry logic
     this.retryConfig = {
-      maxRetries: 3,
-      baseDelay: 1000, // 1 second
+      maxRetries: 2,
+      baseDelay: 2000, // 2 seconds
       maxDelay: 30000, // 30 seconds
       backoffMultiplier: 2,
     };
+
+    // Simple quota tracking
+    this.youtubeQuotaExhausted = false;
+    this.lastQuotaReset = new Date();
   }
 
   async start() {
@@ -28,10 +32,21 @@ class Scheduler {
     // Schedule regular collection every hour
     cron.schedule('0 * * * *', async () => {
       console.log('⏰ Hourly stats collection started...');
+      this.resetQuotaIfNeeded();
       await this.collectStats();
     });
 
     console.log('📅 Scheduler started - will collect stats hourly');
+  }
+
+  // Reset quota flag every 20 hours
+  resetQuotaIfNeeded() {
+    const hours = (new Date() - this.lastQuotaReset) / (1000 * 60 * 60);
+    if (hours >= 20) {
+      this.youtubeQuotaExhausted = false;
+      this.lastQuotaReset = new Date();
+      console.log('🔄 YouTube quota flag reset');
+    }
   }
 
   // Sleep function for delays
@@ -45,6 +60,14 @@ class Scheduler {
       this.retryConfig.baseDelay *
       Math.pow(this.retryConfig.backoffMultiplier, attempt);
     return Math.min(delay, this.retryConfig.maxDelay);
+  }
+
+  // Check if error is critical (no retry needed)
+  isCriticalError(error) {
+    const msg = error.message.toLowerCase();
+    return (
+      msg.includes('quota') || msg.includes('403') || msg.includes('not found')
+    );
   }
 
   // Retry wrapper for API calls
@@ -76,6 +99,17 @@ class Scheduler {
           error.message
         );
 
+        // Check for quota exhaustion
+        if (error.message.includes('quota') || error.message.includes('403')) {
+          this.youtubeQuotaExhausted = true;
+        }
+
+        // Don't retry critical errors
+        if (this.isCriticalError(error)) {
+          console.log(`🚫 Critical error detected, stopping retries`);
+          break;
+        }
+
         // Don't wait after the last attempt
         if (attempt < maxRetries) {
           const delay = this.calculateDelay(attempt);
@@ -101,13 +135,24 @@ class Scheduler {
         await this.processChannel(channel);
 
         // Small delay between channels to avoid overwhelming APIs
-        await this.sleep(500);
+        await this.sleep(1000);
       }
 
       console.log('🎉 Stats collection completed for all channels');
     } catch (error) {
       console.error('💥 Error in stats collection:', error);
     }
+  }
+
+  // Check if data is valid before saving
+  isValidData(stats, platform) {
+    if (platform === 'youtube') {
+      return stats.subscribers > 0 || stats.views > 0 || stats.videos > 0;
+    }
+    if (platform === 'tiktok') {
+      return stats.subscribers > 0 || stats.likes > 0;
+    }
+    return false;
   }
 
   // Process individual channel with retry logic
@@ -120,6 +165,13 @@ class Scheduler {
       let stats = null;
 
       if (channel.platform === 'youtube') {
+        if (this.youtubeQuotaExhausted) {
+          console.log(
+            `⏭️ Skipping YouTube channel ${channel.channel_name} - quota exhausted`
+          );
+          return;
+        }
+
         stats = await this.retryOperation(
           () => youtubeService.getChannelInfo(channel.channel_id),
           `YouTube API for ${channel.channel_name}`
@@ -131,29 +183,31 @@ class Scheduler {
         );
       }
 
-      if (stats) {
+      // Only save if we have valid data
+      if (stats && this.isValidData(stats, channel.platform)) {
         await this.saveStats(channel, stats);
         console.log(`✅ Stats saved for ${channel.channel_name}`);
       } else {
-        console.log(`⚠️ No stats obtained for ${channel.channel_name}`);
+        console.log(
+          `⚠️ Invalid data for ${channel.channel_name}, not saving to database`
+        );
       }
     } catch (error) {
       console.error(
         `💥 Failed to process channel ${channel.channel_name}:`,
         error.message
       );
-
-      // Save error stats or skip - depending on your preference
-      await this.saveErrorStats(channel, error);
+      // Simply skip failed channels - no database pollution
     }
   }
 
   // Save successful stats to database
+  // Save successful stats to database
   async saveStats(channel, stats) {
     try {
       await db.query(
-        `INSERT INTO stats (channel_id, subscribers, total_views, videos, likes)
-         VALUES ($1, $2, $3, $4, $5)`,
+        `INSERT INTO stats (channel_id, subscribers, total_views, videos, likes, recorded_at)
+       VALUES ($1, $2, $3, $4, $5, NOW())`,
         [
           channel.id,
           stats.subscribers || 0,
@@ -171,46 +225,10 @@ class Scheduler {
     }
   }
 
-  // Save error information (optional - you can remove this if not needed)
-  async saveErrorStats(channel, error) {
-    try {
-      // Save with zero values or last known values
-      await db.query(
-        `INSERT INTO stats (channel_id, subscribers, total_views, videos, likes, error_message)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [
-          channel.id,
-          0, // or get last known values from database
-          0,
-          0,
-          0,
-          error.message.substring(0, 255), // limit error message length
-        ]
-      );
-      console.log(`⚠️ Error stats saved for ${channel.channel_name}`);
-    } catch (dbError) {
-      console.error(
-        `❌ Failed to save error stats for ${channel.channel_name}:`,
-        dbError
-      );
-    }
-  }
-
   // Method to manually trigger stats collection (useful for testing)
   async triggerCollection() {
     console.log('🎯 Manual stats collection triggered');
     await this.collectStats();
-  }
-
-  // Method to get retry statistics
-  getRetryConfig() {
-    return this.retryConfig;
-  }
-
-  // Method to update retry configuration
-  updateRetryConfig(newConfig) {
-    this.retryConfig = { ...this.retryConfig, ...newConfig };
-    console.log('⚙️ Retry configuration updated:', this.retryConfig);
   }
 }
 

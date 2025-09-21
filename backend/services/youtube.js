@@ -2,42 +2,26 @@ const YouTubeAPI = require('./youtube-api');
 
 class YouTubeService {
   async getChannelInfo(channelInput) {
-    console.log('🔄 Using YouTube API for:', channelInput);
+    console.log('Using YouTube API for:', channelInput);
 
-    // Remove @ if present
     let username = channelInput.replace('@', '');
 
-    // 1. Search channelId by username (WITHOUT substring(1)!)
+    // Search for channel ID
     const channelId = await YouTubeAPI.searchChannelByUsername(username);
-
     if (!channelId) {
-      console.log('❌ Channel not found for:', username);
-      return this.getFallbackData(channelInput);
-    }
-    console.log('✅ Found channel ID:', channelId, 'for', username);
-
-    // 2. Get statistics on the found channelId
-    try {
-      const apiResult = await YouTubeAPI.getChannelStats(channelId);
-      if (apiResult) {
-        console.log('✅ YouTube API success:', apiResult);
-        return apiResult;
-      }
-    } catch (error) {
-      console.error('❌ YouTube API failed:', error.message);
+      throw new Error(`Channel not found: ${username}`);
     }
 
-    return this.getFallbackData(channelInput);
-  }
+    console.log('Found channel ID:', channelId, 'for', username);
 
-  getFallbackData(channelId) {
-    return {
-      id: channelId,
-      name: `@${channelId}`,
-      subscribers: 0,
-      views: 0,
-      videos: 0,
-    };
+    // Get channel statistics
+    const apiResult = await YouTubeAPI.getChannelStats(channelId);
+    if (!apiResult) {
+      throw new Error(`Failed to get channel stats for: ${channelId}`);
+    }
+
+    console.log('YouTube API success:', apiResult);
+    return apiResult;
   }
 }
 
